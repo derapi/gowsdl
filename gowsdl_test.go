@@ -232,7 +232,7 @@ func TestVboxGeneratesWithoutSyntaxErrors(t *testing.T) {
 
 			_, err = format.Source(data.Bytes())
 			if err != nil {
-				fmt.Println(string(data.Bytes()))
+				fmt.Println(data.String())
 				t.Error(err)
 			}
 		})
