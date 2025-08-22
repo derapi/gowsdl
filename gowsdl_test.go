@@ -208,28 +208,34 @@ func TestVboxGeneratesWithoutSyntaxErrors(t *testing.T) {
 	}
 
 	for _, file := range files {
-		g, err := NewGoWSDL(file, "myservice", false, true)
-		if err != nil {
-			t.Error(err)
-		}
-
-		resp, err := g.Start()
-		if err != nil {
+		if file == "fixtures/vim.wsdl" {
+			// This fixture references missing .xsd files from the VMWare SDK, which aren't actually
+			// vendored. We use it explicitly from test_wsdl.go to test unmarshalling, but not here.
 			continue
-			//t.Error(err)
 		}
+		t.Run(file, func(t *testing.T) {
+			g, err := NewGoWSDL(file, "myservice", false, true)
+			if err != nil {
+				t.Error(err)
+			}
 
-		data := new(bytes.Buffer)
-		data.Write(resp["header"])
-		data.Write(resp["types"])
-		data.Write(resp["operations"])
-		data.Write(resp["soap"])
+			resp, err := g.Start()
+			if err != nil {
+				t.Error(err)
+			}
 
-		_, err = format.Source(data.Bytes())
-		if err != nil {
-			fmt.Println(string(data.Bytes()))
-			t.Error(err)
-		}
+			data := new(bytes.Buffer)
+			data.Write(resp["header"])
+			data.Write(resp["types"])
+			data.Write(resp["operations"])
+			data.Write(resp["soap"])
+
+			_, err = format.Source(data.Bytes())
+			if err != nil {
+				fmt.Println(string(data.Bytes()))
+				t.Error(err)
+			}
+		})
 	}
 }
 
