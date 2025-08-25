@@ -37,6 +37,7 @@ type GoWSDL struct {
 	resolvedXSDExternals  map[string]bool
 	currentRecursionLevel uint8
 	currentNamespace      string
+	typeResolver          *typeResolver
 }
 
 // Method setNS sets (and returns) the currently active XML namespace.
@@ -132,10 +133,8 @@ func (g *GoWSDL) Start() (map[string][]byte, error) {
 		return nil, err
 	}
 
-	// Process WSDL nodes
-	for _, schema := range g.wsdl.Types.Schemas {
-		newTraverser(schema, g.wsdl.Types.Schemas).traverse()
-	}
+	g.typeResolver = newTypeResolver(g.wsdl.Types.Schemas)
+	resolveAttrRefs(g.wsdl.Types.Schemas)
 
 	var wg sync.WaitGroup
 
@@ -611,7 +610,7 @@ func (g *GoWSDL) findType(message string) string {
 
 // Given a type, check if there's an Element with that type, and return its name.
 func (g *GoWSDL) findNameByType(name string) string {
-	return newTraverser(nil, g.wsdl.Types.Schemas).findNameByType(name)
+	return g.typeResolver.elementNameForType(name)
 }
 
 // TODO(c4milo): Add support for namespaces instead of striping them out
