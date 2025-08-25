@@ -297,7 +297,7 @@ func (g *GoWSDL) genTypes() ([]byte, error) {
 		"comment":                  comment,
 		"removeNS":                 removeNS,
 		"goString":                 goString,
-		"findNameByType":           g.findNameByType,
+		"xmlNameForType":           g.xmlNameForType,
 		"removePointerFromType":    removePointerFromType,
 		"setNS":                    g.setNS,
 		"getNS":                    g.getNS,
@@ -609,8 +609,8 @@ func (g *GoWSDL) findType(message string) string {
 }
 
 // Given a type, check if there's an Element with that type, and return its name.
-func (g *GoWSDL) findNameByType(name string) string {
-	return g.typeResolver.elementNameForType(name)
+func (g *GoWSDL) xmlNameForType(typeName string, schema *XSDSchema) xml.Name {
+	return g.typeResolver.xmlNameForType(typeName, schema)
 }
 
 // TODO(c4milo): Add support for namespaces instead of striping them out

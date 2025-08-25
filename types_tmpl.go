@@ -108,6 +108,7 @@ var typesTmpl = `
 {{end}}
 
 {{range .Schemas}}
+	{{ $schema := . }}
 	{{ $targetNamespace := setNS .TargetNamespace }}
 
 	{{range .SimpleType}}
@@ -201,9 +202,12 @@ var typesTmpl = `
 			type {{$typeName}} string
 		{{else}}
 			type {{$typeName}} struct {
-				{{$type := findNameByType .Name}}
-				{{if ne .Name $type}}
-					XMLName xml.Name ` + "`xml:\"{{$targetNamespace}} {{$type}}\"`" + `
+				{{$originalTypeName := .Name}}
+				{{$xmlName := xmlNameForType .Name $schema}}
+				{{with $xmlName}}
+				{{if ne .Local $originalTypeName}}
+					XMLName xml.Name ` + "`xml:\"{{.Space}} {{.Local}}\"`" + `
+				{{end}}
 				{{end}}
 
 				{{if ne .ComplexContent.Extension.Base ""}}
