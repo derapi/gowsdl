@@ -48,7 +48,7 @@ func (s *XSDSchema) namespaceForAttribute(attr *XSDAttribute, isTopLevel bool) s
 	if attr.TargetNamespace != "" {
 		return attr.TargetNamespace
 	}
-	if attr.Form == "qualified" || (attr.Form == "" && s.ElementFormDefault == "qualified") {
+	if attr.Form == "qualified" || (attr.Form == "" && s.AttributeFormDefault == "qualified") {
 		return s.TargetNamespace
 	}
 	return ""
