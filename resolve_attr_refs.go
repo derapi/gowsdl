@@ -11,17 +11,13 @@ func resolveAttrRefs(schemas []*XSDSchema) {
 	// First, build an index from (namespace, attrName) -> attrDef
 	// for all global attrs across all schemas.
 	attrIndex := make(map[namespacedKey]*XSDAttribute)
-
-	v := &visitor{all: schemas}
-	v.visit(&visitorConfig{
-		onEnterSchema: func(s *XSDSchema) {
-			for _, attr := range s.Attributes {
-				if attr.Name != "" {
-					attrIndex[makeNamespacedKey(s.TargetNamespace, attr.Name)] = attr
-				}
+	for _, s := range schemas {
+		for _, attr := range s.Attributes {
+			if attr.Name != "" {
+				attrIndex[makeNamespacedKey(s.TargetNamespace, attr.Name)] = attr
 			}
-		},
-	})
+		}
+	}
 
 	// Next, traverse all attrs with refs and copy over the properties from the referenced attrs.
 	var currentSchema *XSDSchema
@@ -40,7 +36,7 @@ func resolveAttrRefs(schemas []*XSDSchema) {
 		return nil
 	}
 
-	v.visit(&visitorConfig{
+	(&visitor{all: schemas}).visit(&visitorConfig{
 		onEnterSchema: func(s *XSDSchema) {
 			currentSchema = s
 		},
