@@ -6,13 +6,13 @@ import (
 )
 
 type typeResolver struct {
-	elementsByTypeName map[namespacedName][]elementAndSchema
+	elementsByTypeName map[namespacedKey][]elementAndSchema
 }
 
-type namespacedName string
+type namespacedKey string
 
-func makeQualifiedNameKey(namespace, local string) namespacedName {
-	return namespacedName(namespace + "|" + local)
+func makeNamespacedKey(namespace, local string) namespacedKey {
+	return namespacedKey(namespace + "|" + local)
 }
 
 type elementAndSchema struct {
@@ -24,7 +24,7 @@ type elementAndSchema struct {
 func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 	var currentSchema *XSDSchema
 	var currentType *XSDComplexType
-	elementsByTypeName := make(map[namespacedName][]elementAndSchema)
+	elementsByTypeName := make(map[namespacedKey][]elementAndSchema)
 
 	v := &visitor{all: schemas}
 	v.visit(&visitorConfig{
@@ -41,14 +41,14 @@ func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 			if e.Type != "" {
 				topLevel := currentType == nil
 				parts := strings.SplitN(e.Type, ":", 2)
-				var key namespacedName
+				var key namespacedKey
 				if len(parts) == 1 {
-					key = makeQualifiedNameKey(
-						currentSchema.namespaceForElement(e, topLevel),
+					key = makeNamespacedKey(
+						currentSchema.XMLNameForElement(e, topLevel).Space,
 						e.Type,
 					)
 				} else {
-					key = makeQualifiedNameKey(currentSchema.Xmlns[parts[0]], parts[1])
+					key = makeNamespacedKey(currentSchema.Xmlns[parts[0]], parts[1])
 				}
 				elementsByTypeName[key] = append(elementsByTypeName[key], elementAndSchema{
 					element:  e,
@@ -80,7 +80,7 @@ func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 // except for types used directly as request/response wrappers, and instead emit namespaces
 // on field tags, but that would be a somewhat involved change.
 func (tr *typeResolver) xmlNameForType(typeName string, schema *XSDSchema) xml.Name {
-	key := makeQualifiedNameKey(schema.TargetNamespace, typeName)
+	key := makeNamespacedKey(schema.TargetNamespace, typeName)
 	elements, ok := tr.elementsByTypeName[key]
 	if !ok {
 		return xml.Name{
@@ -93,13 +93,11 @@ func (tr *typeResolver) xmlNameForType(typeName string, schema *XSDSchema) xml.N
 	namespaces := make(map[string]struct{})
 	for _, e := range elements {
 		elementNames[e.element.Name] = struct{}{}
-		namespaces[e.schema.namespaceForElement(e.element, e.topLevel)] = struct{}{}
+		namespaces[e.schema.XMLNameForElement(e.element, e.topLevel).Space] = struct{}{}
 	}
 	if len(elementNames) == 1 && len(namespaces) == 1 {
-		return xml.Name{
-			Space: elements[0].schema.namespaceForElement(elements[0].element, elements[0].topLevel),
-			Local: elements[0].element.Name,
-		}
+		e := elements[0]
+		return e.schema.XMLNameForElement(e.element, e.topLevel)
 	}
 
 	return xml.Name{

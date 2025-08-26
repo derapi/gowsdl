@@ -36,19 +36,20 @@ type GoWSDL struct {
 	wsdl                  *WSDL
 	resolvedXSDExternals  map[string]bool
 	currentRecursionLevel uint8
-	currentNamespace      string
+	currentSchema         *XSDSchema
 	typeResolver          *typeResolver
 }
 
-// Method setNS sets (and returns) the currently active XML namespace.
-func (g *GoWSDL) setNS(ns string) string {
-	g.currentNamespace = ns
-	return ns
+// setCurrentSchema sets (and returns) the currently active XSD schema.
+// This may be consumed from within templates in order to help resolve namespaces.
+func (g *GoWSDL) setCurrentSchema(s *XSDSchema) *XSDSchema {
+	g.currentSchema = s
+	return s
 }
 
-// Method setNS returns the currently active XML namespace.
-func (g *GoWSDL) getNS() string {
-	return g.currentNamespace
+// getCurrentSchema returns the currently active XSD schema.
+func (g *GoWSDL) getCurrentSchema() *XSDSchema {
+	return g.currentSchema
 }
 
 var cacheDir = filepath.Join(os.TempDir(), "gowsdl-cache")
@@ -83,7 +84,7 @@ func downloadFile(url string, ignoreTLS bool) ([]byte, error) {
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Received response code %d", resp.StatusCode)
+		return nil, fmt.Errorf("received response code %d while fetching %s", resp.StatusCode, url)
 	}
 
 	data, err := io.ReadAll(resp.Body)
@@ -299,8 +300,9 @@ func (g *GoWSDL) genTypes() ([]byte, error) {
 		"goString":                 goString,
 		"xmlNameForType":           g.xmlNameForType,
 		"removePointerFromType":    removePointerFromType,
-		"setNS":                    g.setNS,
-		"getNS":                    g.getNS,
+		"setCurrentSchema":         g.setCurrentSchema,
+		"getCurrentSchema":         g.getCurrentSchema,
+		"renderXMLName":            renderXMLName,
 		"renderXMLTag":             renderXMLTag,
 	}
 
@@ -732,10 +734,14 @@ func comment(text string) string {
 	return ""
 }
 
-func renderXMLTag(xn xml.Name) string {
-	tagVal := xn.Local
+func renderXMLName(xn xml.Name) string {
+	result := xn.Local
 	if xn.Space != "" {
-		tagVal = fmt.Sprintf("%s %s", xn.Space, xn.Local)
+		result = fmt.Sprintf("%s %s", xn.Space, xn.Local)
 	}
-	return fmt.Sprintf("`xml:\"%s\"`", tagVal)
+	return result
+}
+
+func renderXMLTag(xn xml.Name) string {
+	return fmt.Sprintf("`xml:\"%s\"`", renderXMLName(xn))
 }

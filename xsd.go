@@ -28,30 +28,46 @@ type XSDSchema struct {
 	SimpleType           []*XSDSimpleType  `xml:"simpleType"`
 }
 
-func (s *XSDSchema) namespaceForElement(e *XSDElement, isTopLevel bool) string {
+// See https://www.w3.org/TR/xmlschema11-1/#declare-element
+func (s *XSDSchema) XMLNameForElement(e *XSDElement, isTopLevel bool) (xn xml.Name) {
+	xn.Local = e.Name
 	if isTopLevel {
-		return s.TargetNamespace
+		xn.Space = s.TargetNamespace
+		return
 	}
 	if e.TargetNamespace != "" {
-		return e.TargetNamespace
+		xn.Space = e.TargetNamespace
+		return
 	}
 	if e.Form == "qualified" || (e.Form == "" && s.ElementFormDefault == "qualified") {
-		return s.TargetNamespace
+		xn.Space = s.TargetNamespace
+		return
 	}
-	return ""
+	return xn
 }
 
-func (s *XSDSchema) namespaceForAttribute(attr *XSDAttribute, isTopLevel bool) string {
+func (s *XSDSchema) XMLNameForAttribute(attr *XSDAttribute) (xn xml.Name) {
+	var isTopLevel bool
+	for _, a := range s.Attributes {
+		if a == attr {
+			isTopLevel = true
+			break
+		}
+	}
+	xn.Local = attr.Name
 	if isTopLevel {
-		return s.TargetNamespace
+		xn.Space = s.TargetNamespace
+		return
 	}
 	if attr.TargetNamespace != "" {
-		return attr.TargetNamespace
+		xn.Space = attr.TargetNamespace
+		return
 	}
 	if attr.Form == "qualified" || (attr.Form == "" && s.AttributeFormDefault == "qualified") {
-		return s.TargetNamespace
+		xn.Space = s.TargetNamespace
+		return
 	}
-	return ""
+	return
 }
 
 // UnmarshalXML implements interface xml.Unmarshaler for XSDSchema.

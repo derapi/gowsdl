@@ -10,17 +10,16 @@ import (
 func resolveAttrRefs(schemas []*XSDSchema) {
 	// First, build an index from (namespace, attrName) -> attrDef
 	// for all global attrs across all schemas.
-	attrIndex := make(map[string]map[string]*XSDAttribute)
+	attrIndex := make(map[namespacedKey]*XSDAttribute)
+
 	v := &visitor{all: schemas}
 	v.visit(&visitorConfig{
 		onEnterSchema: func(s *XSDSchema) {
-			attrMap := make(map[string]*XSDAttribute)
 			for _, attr := range s.Attributes {
 				if attr.Name != "" {
-					attrMap[attr.Name] = attr
+					attrIndex[makeNamespacedKey(s.TargetNamespace, attr.Name)] = attr
 				}
 			}
-			attrIndex[s.TargetNamespace] = attrMap
 		},
 	})
 
@@ -32,14 +31,10 @@ func resolveAttrRefs(schemas []*XSDSchema) {
 		}
 		parts := strings.SplitN(ref, ":", 2)
 		if len(parts) == 1 {
-			if schemaAttrs, ok := attrIndex[currentSchema.TargetNamespace]; ok {
-				return schemaAttrs[parts[0]]
-			}
+			return attrIndex[makeNamespacedKey(currentSchema.TargetNamespace, parts[0])]
 		} else {
 			if ns, ok := currentSchema.Xmlns[parts[0]]; ok {
-				if schemaAttrs, ok := attrIndex[ns]; ok {
-					return schemaAttrs[parts[1]]
-				}
+				return attrIndex[makeNamespacedKey(ns, parts[1])]
 			}
 		}
 		return nil
@@ -58,6 +53,7 @@ func resolveAttrRefs(schemas []*XSDSchema) {
 					if attr.Fixed == "" {
 						attr.Fixed = refAttr.Fixed
 					}
+					attr.TargetNamespace = currentSchema.XMLNameForAttribute(refAttr).Space
 				}
 			} else if attr.Type == "" && attr.SimpleType != nil {
 				attr.Type = attr.SimpleType.Restriction.Base
