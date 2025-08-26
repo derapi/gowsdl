@@ -87,6 +87,8 @@ func (s *XSDSchema) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			s.TargetNamespace = attr.Value
 		case "elementFormDefault":
 			s.ElementFormDefault = attr.Value
+		case "attributeFormDefault":
+			s.AttributeFormDefault = attr.Value
 		}
 	}
 
