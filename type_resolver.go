@@ -16,43 +16,33 @@ func newNamespacedKey(namespace, local string) namespacedKey {
 }
 
 type elementAndSchema struct {
-	element  *XSDElement
-	schema   *XSDSchema
-	topLevel bool
+	element *XSDElement
+	schema  *XSDSchema
 }
 
 func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 	var currentSchema *XSDSchema
-	var currentType *XSDComplexType
 	elementsByTypeName := make(map[namespacedKey][]elementAndSchema)
 
 	visitor{schemas}.visit(&visitorConfig{
 		onEnterSchema: func(s *XSDSchema) {
 			currentSchema = s
 		},
-		onEnterComplexType: func(ct *XSDComplexType) {
-			currentType = ct
-		},
-		onExitComplexType: func(ct *XSDComplexType) {
-			currentType = nil
-		},
 		onEnterElement: func(e *XSDElement) {
 			if e.Type != "" {
-				topLevel := currentType == nil
 				parts := strings.SplitN(e.Type, ":", 2)
 				var key namespacedKey
 				if len(parts) == 1 {
 					key = newNamespacedKey(
-						currentSchema.XMLNameForElement(e, topLevel).Space,
+						currentSchema.XMLNameForElement(e).Space,
 						e.Type,
 					)
 				} else {
 					key = newNamespacedKey(currentSchema.Xmlns[parts[0]], parts[1])
 				}
 				elementsByTypeName[key] = append(elementsByTypeName[key], elementAndSchema{
-					element:  e,
-					schema:   currentSchema,
-					topLevel: topLevel,
+					element: e,
+					schema:  currentSchema,
 				})
 			}
 		},
@@ -92,11 +82,11 @@ func (tr *typeResolver) xmlNameForType(typeName string, schema *XSDSchema) xml.N
 	namespaces := make(map[string]struct{})
 	for _, e := range elements {
 		elementNames[e.element.Name] = struct{}{}
-		namespaces[e.schema.XMLNameForElement(e.element, e.topLevel).Space] = struct{}{}
+		namespaces[e.schema.XMLNameForElement(e.element).Space] = struct{}{}
 	}
 	if len(elementNames) == 1 && len(namespaces) == 1 {
 		e := elements[0]
-		return e.schema.XMLNameForElement(e.element, e.topLevel)
+		return e.schema.XMLNameForElement(e.element)
 	}
 
 	return xml.Name{

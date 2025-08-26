@@ -29,7 +29,15 @@ type XSDSchema struct {
 }
 
 // See https://www.w3.org/TR/xmlschema11-1/#declare-element
-func (s *XSDSchema) XMLNameForElement(e *XSDElement, isTopLevel bool) (xn xml.Name) {
+func (s *XSDSchema) XMLNameForElement(e *XSDElement) (xn xml.Name) {
+	var isTopLevel bool
+	for _, el := range s.Elements {
+		if el == e {
+			isTopLevel = true
+			break
+		}
+	}
+
 	xn.Local = e.Name
 	if isTopLevel {
 		xn.Space = s.TargetNamespace

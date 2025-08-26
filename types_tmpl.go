@@ -126,7 +126,7 @@ var typesTmpl = `
 			{{/* ComplexTypeLocal */}}
 			{{with .ComplexType}}
 				type {{$typeName}} struct {
-					XMLName xml.Name {{renderXMLTag ($schema.XMLNameForElement $element true) }}
+					XMLName xml.Name {{renderXMLTag ($schema.XMLNameForElement $element) }}
 					{{if ne .ComplexContent.Extension.Base ""}}
 						{{template "ComplexContent" .ComplexContent}}
 					{{else if ne .SimpleContent.Extension.Base ""}}
