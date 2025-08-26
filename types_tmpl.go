@@ -206,7 +206,7 @@ var typesTmpl = `
 				{{$xmlName := xmlNameForType .Name $schema}}
 				{{with $xmlName}}
 				{{if ne .Local $originalTypeName}}
-					XMLName xml.Name ` + "`xml:\"{{.Space}} {{.Local}}\"`" + `
+					XMLName xml.Name {{renderXMLTag .}}
 				{{end}}
 				{{end}}
 

@@ -301,6 +301,7 @@ func (g *GoWSDL) genTypes() ([]byte, error) {
 		"removePointerFromType":    removePointerFromType,
 		"setNS":                    g.setNS,
 		"getNS":                    g.getNS,
+		"renderXMLTag":             renderXMLTag,
 	}
 
 	data := new(bytes.Buffer)
@@ -729,4 +730,12 @@ func comment(text string) string {
 		return output
 	}
 	return ""
+}
+
+func renderXMLTag(xn xml.Name) string {
+	tagVal := xn.Local
+	if xn.Space != "" {
+		tagVal = fmt.Sprintf("%s %s", xn.Space, xn.Local)
+	}
+	return fmt.Sprintf("`xml:\"%s\"`", tagVal)
 }
