@@ -1,13 +1,15 @@
 package gowsdl
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 )
 
 // resolveAttrRefs resolves all attribute references across the provided schemas.
 // It modifies the schemas in-place, copying properties from the referenced attributes
 // onto the referencing attributes.
-func resolveAttrRefs(schemas []*XSDSchema) {
+func resolveAttrRefs(schemas []*XSDSchema) error {
 	// First, build an index from (namespace, attrName) -> attrDef
 	// for all global attrs across all schemas.
 	attrIndex := make(map[namespacedKey]*XSDAttribute)
@@ -19,41 +21,47 @@ func resolveAttrRefs(schemas []*XSDSchema) {
 		}
 	}
 
-	keyFromAttrRef := func(s *XSDSchema, attrRef string) namespacedKey {
-		parts := strings.SplitN(attrRef, ":", 2)
-		if len(parts) == 1 {
-			return newNamespacedKey(s.TargetNamespace, parts[0])
-		} else {
-			if ns, ok := s.Xmlns[parts[0]]; ok {
-				return newNamespacedKey(ns, parts[1])
-			}
+	keyFromAttrRef := func(s *XSDSchema, attrRef string) (namespacedKey, error) {
+		before, after, hadColon := strings.Cut(attrRef, ":")
+		if !hadColon {
+			return newNamespacedKey(s.TargetNamespace, before), nil
 		}
-		return ""
+		if ns, ok := s.Xmlns[before]; ok {
+			return newNamespacedKey(ns, after), nil
+		}
+		return "", fmt.Errorf("unable to resolve namespace prefix %q in attribute ref %q", before, attrRef)
 	}
 
 	// Next, traverse all attrs with refs and copy over the properties from the referenced attrs.
 	var currentSchema *XSDSchema
+	var errs []error
 	visitor{schemas}.visit(&visitorConfig{
 		onEnterSchema: func(s *XSDSchema) {
 			currentSchema = s
 		},
 		onEnterAttribute: func(attr *XSDAttribute) {
 			if attr.Ref != "" {
-				nsk := keyFromAttrRef(currentSchema, attr.Ref)
-				if nsk == "" {
+				nsk, err := keyFromAttrRef(currentSchema, attr.Ref)
+				if err != nil {
+					errs = append(errs, err)
 					return
 				}
-				if refAttr, ok := attrIndex[nsk]; ok && refAttr.Ref == "" {
-					attr.Name = refAttr.Name
-					attr.Type = refAttr.Type
-					if attr.Fixed == "" {
-						attr.Fixed = refAttr.Fixed
-					}
-					attr.TargetNamespace = currentSchema.XMLNameForAttribute(refAttr).Space
+				refAttr, ok := attrIndex[nsk]
+				if !ok || refAttr.Ref != "" {
+					errs = append(errs, fmt.Errorf("unable to resolve attribute ref %q in schema with namespace %q", attr.Ref, currentSchema.TargetNamespace))
+					return
 				}
+				attr.Name = refAttr.Name
+				attr.Type = refAttr.Type
+				if attr.Fixed == "" {
+					attr.Fixed = refAttr.Fixed
+				}
+				attr.TargetNamespace = currentSchema.XMLNameForAttribute(refAttr).Space
 			} else if attr.Type == "" && attr.SimpleType != nil {
 				attr.Type = attr.SimpleType.Restriction.Base
 			}
 		},
 	})
+
+	return errors.Join(errs...)
 }

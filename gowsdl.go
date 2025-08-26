@@ -135,7 +135,10 @@ func (g *GoWSDL) Start() (map[string][]byte, error) {
 	}
 
 	g.typeResolver = newTypeResolver(g.wsdl.Types.Schemas)
-	resolveAttrRefs(g.wsdl.Types.Schemas)
+	err = resolveAttrRefs(g.wsdl.Types.Schemas)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve attribute references: %w", err)
+	}
 
 	var wg sync.WaitGroup
 
