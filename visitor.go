@@ -17,7 +17,7 @@ type visitorConfig struct {
 	onExitAttribute    func(*XSDAttribute)
 }
 
-func (v *visitor) visit(cfg *visitorConfig) {
+func (v visitor) visit(cfg *visitorConfig) {
 	for _, schema := range v.all {
 		if cfg.onEnterSchema != nil {
 			cfg.onEnterSchema(schema)
@@ -29,7 +29,7 @@ func (v *visitor) visit(cfg *visitorConfig) {
 	}
 }
 
-func (v *visitor) visitSchema(s *XSDSchema, cfg *visitorConfig) {
+func (v visitor) visitSchema(s *XSDSchema, cfg *visitorConfig) {
 	for _, elm := range s.Elements {
 		v.visitElement(elm, cfg)
 	}
@@ -41,13 +41,13 @@ func (v *visitor) visitSchema(s *XSDSchema, cfg *visitorConfig) {
 	}
 }
 
-func (v *visitor) visitElements(es []*XSDElement, cfg *visitorConfig) {
+func (v visitor) visitElements(es []*XSDElement, cfg *visitorConfig) {
 	for _, e := range es {
 		v.visitElement(e, cfg)
 	}
 }
 
-func (v *visitor) visitAttribute(attr *XSDAttribute, cfg *visitorConfig) {
+func (v visitor) visitAttribute(attr *XSDAttribute, cfg *visitorConfig) {
 	if cfg.onEnterAttribute != nil {
 		cfg.onEnterAttribute(attr)
 	}
@@ -56,13 +56,13 @@ func (v *visitor) visitAttribute(attr *XSDAttribute, cfg *visitorConfig) {
 	}
 }
 
-func (v *visitor) visitAttributes(attrs []*XSDAttribute, cfg *visitorConfig) {
+func (v visitor) visitAttributes(attrs []*XSDAttribute, cfg *visitorConfig) {
 	for _, attr := range attrs {
 		v.visitAttribute(attr, cfg)
 	}
 }
 
-func (v *visitor) visitElement(e *XSDElement, cfg *visitorConfig) {
+func (v visitor) visitElement(e *XSDElement, cfg *visitorConfig) {
 	if cfg.onEnterElement != nil {
 		cfg.onEnterElement(e)
 	}
@@ -79,7 +79,7 @@ func (v *visitor) visitElement(e *XSDElement, cfg *visitorConfig) {
 	}
 }
 
-func (v *visitor) visitComplexType(ct *XSDComplexType, cfg *visitorConfig) {
+func (v visitor) visitComplexType(ct *XSDComplexType, cfg *visitorConfig) {
 	if cfg.onEnterComplexType != nil {
 		cfg.onEnterComplexType(ct)
 	}
@@ -100,7 +100,7 @@ func (v *visitor) visitComplexType(ct *XSDComplexType, cfg *visitorConfig) {
 	}
 }
 
-func (v *visitor) visitSimpleType(st *XSDSimpleType, cfg *visitorConfig) {
+func (v visitor) visitSimpleType(st *XSDSimpleType, cfg *visitorConfig) {
 	if cfg.onEnterSimpleType != nil {
 		cfg.onEnterSimpleType(st)
 	}

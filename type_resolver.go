@@ -11,7 +11,7 @@ type typeResolver struct {
 
 type namespacedKey string
 
-func makeNamespacedKey(namespace, local string) namespacedKey {
+func newNamespacedKey(namespace, local string) namespacedKey {
 	return namespacedKey(namespace + "|" + local)
 }
 
@@ -26,8 +26,7 @@ func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 	var currentType *XSDComplexType
 	elementsByTypeName := make(map[namespacedKey][]elementAndSchema)
 
-	v := &visitor{all: schemas}
-	v.visit(&visitorConfig{
+	visitor{schemas}.visit(&visitorConfig{
 		onEnterSchema: func(s *XSDSchema) {
 			currentSchema = s
 		},
@@ -43,12 +42,12 @@ func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 				parts := strings.SplitN(e.Type, ":", 2)
 				var key namespacedKey
 				if len(parts) == 1 {
-					key = makeNamespacedKey(
+					key = newNamespacedKey(
 						currentSchema.XMLNameForElement(e, topLevel).Space,
 						e.Type,
 					)
 				} else {
-					key = makeNamespacedKey(currentSchema.Xmlns[parts[0]], parts[1])
+					key = newNamespacedKey(currentSchema.Xmlns[parts[0]], parts[1])
 				}
 				elementsByTypeName[key] = append(elementsByTypeName[key], elementAndSchema{
 					element:  e,
@@ -80,7 +79,7 @@ func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 // except for types used directly as request/response wrappers, and instead emit namespaces
 // on field tags, but that would be a somewhat involved change.
 func (tr *typeResolver) xmlNameForType(typeName string, schema *XSDSchema) xml.Name {
-	key := makeNamespacedKey(schema.TargetNamespace, typeName)
+	key := newNamespacedKey(schema.TargetNamespace, typeName)
 	elements, ok := tr.elementsByTypeName[key]
 	if !ok {
 		return xml.Name{

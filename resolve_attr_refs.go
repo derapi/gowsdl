@@ -14,36 +14,36 @@ func resolveAttrRefs(schemas []*XSDSchema) {
 	for _, s := range schemas {
 		for _, attr := range s.Attributes {
 			if attr.Name != "" {
-				attrIndex[makeNamespacedKey(s.TargetNamespace, attr.Name)] = attr
+				attrIndex[newNamespacedKey(s.TargetNamespace, attr.Name)] = attr
 			}
 		}
+	}
+
+	keyFromAttrRef := func(s *XSDSchema, attrRef string) namespacedKey {
+		parts := strings.SplitN(attrRef, ":", 2)
+		if len(parts) == 1 {
+			return newNamespacedKey(s.TargetNamespace, parts[0])
+		} else {
+			if ns, ok := s.Xmlns[parts[0]]; ok {
+				return newNamespacedKey(ns, parts[1])
+			}
+		}
+		return ""
 	}
 
 	// Next, traverse all attrs with refs and copy over the properties from the referenced attrs.
 	var currentSchema *XSDSchema
-	attrByRef := func(ref string) *XSDAttribute {
-		if currentSchema == nil {
-			return nil
-		}
-		parts := strings.SplitN(ref, ":", 2)
-		if len(parts) == 1 {
-			return attrIndex[makeNamespacedKey(currentSchema.TargetNamespace, parts[0])]
-		} else {
-			if ns, ok := currentSchema.Xmlns[parts[0]]; ok {
-				return attrIndex[makeNamespacedKey(ns, parts[1])]
-			}
-		}
-		return nil
-	}
-
-	(&visitor{all: schemas}).visit(&visitorConfig{
+	visitor{schemas}.visit(&visitorConfig{
 		onEnterSchema: func(s *XSDSchema) {
 			currentSchema = s
 		},
 		onEnterAttribute: func(attr *XSDAttribute) {
 			if attr.Ref != "" {
-				refAttr := attrByRef(attr.Ref)
-				if refAttr != nil && refAttr.Ref == "" {
+				nsk := keyFromAttrRef(currentSchema, attr.Ref)
+				if nsk == "" {
+					return
+				}
+				if refAttr, ok := attrIndex[nsk]; ok && refAttr.Ref == "" {
 					attr.Name = refAttr.Name
 					attr.Type = refAttr.Type
 					if attr.Fixed == "" {
