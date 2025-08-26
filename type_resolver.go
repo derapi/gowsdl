@@ -29,22 +29,23 @@ func newTypeResolver(schemas []*XSDSchema) *typeResolver {
 			currentSchema = s
 		},
 		onEnterElement: func(e *XSDElement) {
-			if e.Type != "" {
-				parts := strings.SplitN(e.Type, ":", 2)
-				var key namespacedKey
-				if len(parts) == 1 {
-					key = newNamespacedKey(
-						currentSchema.XMLNameForElement(e).Space,
-						e.Type,
-					)
-				} else {
-					key = newNamespacedKey(currentSchema.Xmlns[parts[0]], parts[1])
-				}
-				elementsByTypeName[key] = append(elementsByTypeName[key], elementAndSchema{
-					element: e,
-					schema:  currentSchema,
-				})
+			if e.Type == "" {
+				return
 			}
+			before, after, hadColon := strings.Cut(e.Type, ":")
+			var key namespacedKey
+			if hadColon {
+				key = newNamespacedKey(currentSchema.Xmlns[before], after)
+			} else {
+				key = newNamespacedKey(
+					currentSchema.XMLNameForElement(e).Space,
+					e.Type,
+				)
+			}
+			elementsByTypeName[key] = append(elementsByTypeName[key], elementAndSchema{
+				element: e,
+				schema:  currentSchema,
+			})
 		},
 	})
 	return &typeResolver{
